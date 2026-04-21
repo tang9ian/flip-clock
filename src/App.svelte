@@ -10,6 +10,11 @@
     hour12: boolean;
     showSeconds: boolean;
     screensaver: boolean;
+    showDateInSpecialMode: boolean;
+    showHourLabelInSpecialMode: boolean;
+    showMinuteLabelInSpecialMode: boolean;
+    showSecondLabelInSpecialMode: boolean;
+    showDayPeriodInSpecialMode: boolean;
     theme: Theme;
     size: ClockSize;
     timeZone: string;
@@ -44,6 +49,13 @@
     screensaver: string;
     screensaverDescription: string;
     screensaverExitHint: string;
+    specialDisplayTitle: string;
+    specialDisplayDescription: string;
+    showDate: string;
+    showHourLabel: string;
+    showMinuteLabel: string;
+    showSecondLabel: string;
+    showDayPeriod: string;
     clockSize: string;
     fullscreen: string;
     on: string;
@@ -101,6 +113,13 @@
       screensaver: "屏保模式",
       screensaverDescription: "开启后仅显示日期、时分秒和 AM/PM。",
       screensaverExitHint: "按 Esc 或点击时钟退出屏保",
+      specialDisplayTitle: "全屏 / 屏保显示",
+      specialDisplayDescription: "这些开关仅作用于全屏和屏保界面。",
+      showDate: "显示日期",
+      showHourLabel: "显示小时标签",
+      showMinuteLabel: "显示分钟标签",
+      showSecondLabel: "显示秒钟标签",
+      showDayPeriod: "显示 AM/PM",
       clockSize: "时钟尺寸",
       fullscreen: "全屏",
       on: "开启",
@@ -175,6 +194,13 @@
       screensaver: "Screensaver mode",
       screensaverDescription: "Show only the date, time with seconds, and AM/PM.",
       screensaverExitHint: "Press Esc or click the clock to exit screensaver",
+      specialDisplayTitle: "Fullscreen / Screensaver",
+      specialDisplayDescription: "These toggles only affect fullscreen and screensaver views.",
+      showDate: "Show date",
+      showHourLabel: "Show hour label",
+      showMinuteLabel: "Show minute label",
+      showSecondLabel: "Show second label",
+      showDayPeriod: "Show AM/PM",
       clockSize: "Clock size",
       fullscreen: "Fullscreen",
       on: "On",
@@ -249,6 +275,13 @@
       screensaver: "スクリーンセーバー",
       screensaverDescription: "日付、時分秒、AM/PM のみ表示します。",
       screensaverExitHint: "Esc キーまたはクリックで終了",
+      specialDisplayTitle: "全画面 / スクリーンセーバー",
+      specialDisplayDescription: "これらの設定は全画面とスクリーンセーバー時のみ有効です。",
+      showDate: "日付を表示",
+      showHourLabel: "時ラベルを表示",
+      showMinuteLabel: "分ラベルを表示",
+      showSecondLabel: "秒ラベルを表示",
+      showDayPeriod: "AM/PM を表示",
       clockSize: "時計サイズ",
       fullscreen: "全画面",
       on: "オン",
@@ -323,6 +356,13 @@
       screensaver: "스크린세이버 모드",
       screensaverDescription: "날짜, 시분초, AM/PM만 표시합니다.",
       screensaverExitHint: "Esc 키 또는 클릭으로 종료",
+      specialDisplayTitle: "전체 화면 / 스크린세이버",
+      specialDisplayDescription: "이 설정은 전체 화면과 스크린세이버 화면에서만 적용됩니다.",
+      showDate: "날짜 표시",
+      showHourLabel: "시 라벨 표시",
+      showMinuteLabel: "분 라벨 표시",
+      showSecondLabel: "초 라벨 표시",
+      showDayPeriod: "AM/PM 표시",
       clockSize: "시계 크기",
       fullscreen: "전체 화면",
       on: "켜기",
@@ -381,6 +421,11 @@
     hour12: false,
     showSeconds: true,
     screensaver: false,
+    showDateInSpecialMode: true,
+    showHourLabelInSpecialMode: true,
+    showMinuteLabelInSpecialMode: true,
+    showSecondLabelInSpecialMode: true,
+    showDayPeriodInSpecialMode: true,
     theme: "dark",
     size: "comfortable",
     timeZone: "local",
@@ -406,6 +451,7 @@
   let mounted = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let fullscreen = false;
+  let pseudoFullscreen = false;
   let clockShell: HTMLDivElement;
   let customTimeZoneInput = "local";
   let timeZoneError = "";
@@ -490,11 +536,31 @@
       return;
     }
 
-    await clockShell.requestFullscreen();
+    if (pseudoFullscreen) {
+      pseudoFullscreen = false;
+      return;
+    }
+
+    const canUseNativeFullscreen =
+      typeof clockShell.requestFullscreen === "function" && document.fullscreenEnabled;
+
+    if (!canUseNativeFullscreen) {
+      pseudoFullscreen = true;
+      return;
+    }
+
+    try {
+      await clockShell.requestFullscreen();
+    } catch {
+      pseudoFullscreen = true;
+    }
   }
 
   function handleFullscreenChange() {
     fullscreen = !!document.fullscreenElement;
+    if (fullscreen) {
+      pseudoFullscreen = false;
+    }
   }
 
   function getTimeParts(date: Date, clockSettings: ClockSettings) {
@@ -531,13 +597,32 @@
 
   $: copy = translations[settings.language];
   $: effectiveShowSeconds = true;
+  $: activeFullscreen = fullscreen || pseudoFullscreen;
+  $: specialDisplayMode = activeFullscreen || settings.screensaver;
   $: timeParts = getTimeParts(now, settings);
   $: dateLine = getDateLine(now, settings);
   $: segments = [
-    { key: "hour", value: timeParts.hour, label: copy.hours },
-    { key: "minute", value: timeParts.minute, label: copy.minutes },
-    ...(effectiveShowSeconds ? [{ key: "second", value: timeParts.second, label: copy.secondsLabel }] : []),
-  ] as TimeSegment[];
+    {
+      key: "hour",
+      value: timeParts.hour,
+      label: copy.hours,
+      showLabel: !specialDisplayMode || settings.showHourLabelInSpecialMode,
+    },
+    {
+      key: "minute",
+      value: timeParts.minute,
+      label: copy.minutes,
+      showLabel: !specialDisplayMode || settings.showMinuteLabelInSpecialMode,
+    },
+    ...(effectiveShowSeconds
+      ? [{
+          key: "second",
+          value: timeParts.second,
+          label: copy.secondsLabel,
+          showLabel: !specialDisplayMode || settings.showSecondLabelInSpecialMode,
+        }]
+      : []),
+  ] as Array<TimeSegment & { showLabel: boolean }>;
   $: timeZoneLabel = formatTimeZoneLabel(settings.timeZone, copy);
   $: themeLabel = copy.themeLabels[settings.theme];
 
@@ -545,6 +630,7 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
     document.documentElement.dataset.theme = settings.theme;
     document.documentElement.lang = settings.language;
+    document.body.style.overflow = activeFullscreen ? "hidden" : "";
   }
 
   onMount(() => {
@@ -566,6 +652,7 @@
     if (timer) clearTimeout(timer);
     document.removeEventListener("fullscreenchange", handleFullscreenChange);
     document.removeEventListener("keydown", handleScreensaverKeydown);
+    document.body.style.overflow = "";
   });
 </script>
 
@@ -577,7 +664,7 @@
   class="app-shell"
   data-size={settings.size}
   bind:this={clockShell}
-  data-fullscreen={fullscreen}
+  data-fullscreen={activeFullscreen}
   data-screensaver={settings.screensaver}
 >
   <section class="clock-panel">
@@ -596,22 +683,24 @@
           {#if !settings.screensaver}
             <p class="eyebrow">{copy.appName}</p>
           {/if}
-          <div class="date-row">
-            <h1>{dateLine}</h1>
-            {#if !settings.screensaver}
-              <span>{timeZoneLabel}</span>
-            {/if}
-          </div>
+          {#if !specialDisplayMode || settings.showDateInSpecialMode}
+            <div class="date-row">
+              <h1>{dateLine}</h1>
+              {#if !settings.screensaver}
+                <span>{timeZoneLabel}</span>
+              {/if}
+            </div>
+          {/if}
         </div>
 
         {#if !settings.screensaver}
           <button
             type="button"
             class="fullscreen-toggle"
-            aria-pressed={fullscreen}
+            aria-pressed={activeFullscreen}
             on:click={toggleFullscreen}
           >
-            {fullscreen ? copy.fullscreenExit : copy.fullscreenEnter}
+            {activeFullscreen ? copy.fullscreenExit : copy.fullscreenEnter}
           </button>
         {/if}
       </div>
@@ -627,13 +716,15 @@
 
     <div class="clock" class:compact={!effectiveShowSeconds}>
       {#each segments as segment (segment.key)}
-        <div class="segment">
+        <div class="segment" data-segment={segment.key}>
           <FlipUnit value={segment.value} />
-          <span>{segment.label}</span>
+          {#if segment.showLabel}
+            <span>{segment.label}</span>
+          {/if}
         </div>
       {/each}
 
-      {#if settings.hour12 && timeParts.dayPeriod}
+      {#if settings.hour12 && timeParts.dayPeriod && (!specialDisplayMode || settings.showDayPeriodInSpecialMode)}
         <div class="period-pill">{timeParts.dayPeriod}</div>
       {/if}
     </div>
@@ -703,6 +794,73 @@
         <small>{copy.screensaverDescription}</small>
       </div>
 
+      <div class="setting-options">
+        <div class="group-heading">
+          <h2>{copy.specialDisplayTitle}</h2>
+          <p>{copy.specialDisplayDescription}</p>
+        </div>
+
+        <div class="setting toggle-row">
+          <span>{copy.showDate}</span>
+          <button
+            type="button"
+            class:active={settings.showDateInSpecialMode}
+            aria-pressed={settings.showDateInSpecialMode}
+            on:click={() => updateSetting("showDateInSpecialMode", !settings.showDateInSpecialMode)}
+          >
+            {settings.showDateInSpecialMode ? copy.on : copy.off}
+          </button>
+        </div>
+
+        <div class="setting toggle-row">
+          <span>{copy.showHourLabel}</span>
+          <button
+            type="button"
+            class:active={settings.showHourLabelInSpecialMode}
+            aria-pressed={settings.showHourLabelInSpecialMode}
+            on:click={() => updateSetting("showHourLabelInSpecialMode", !settings.showHourLabelInSpecialMode)}
+          >
+            {settings.showHourLabelInSpecialMode ? copy.on : copy.off}
+          </button>
+        </div>
+
+        <div class="setting toggle-row">
+          <span>{copy.showMinuteLabel}</span>
+          <button
+            type="button"
+            class:active={settings.showMinuteLabelInSpecialMode}
+            aria-pressed={settings.showMinuteLabelInSpecialMode}
+            on:click={() => updateSetting("showMinuteLabelInSpecialMode", !settings.showMinuteLabelInSpecialMode)}
+          >
+            {settings.showMinuteLabelInSpecialMode ? copy.on : copy.off}
+          </button>
+        </div>
+
+        <div class="setting toggle-row">
+          <span>{copy.showSecondLabel}</span>
+          <button
+            type="button"
+            class:active={settings.showSecondLabelInSpecialMode}
+            aria-pressed={settings.showSecondLabelInSpecialMode}
+            on:click={() => updateSetting("showSecondLabelInSpecialMode", !settings.showSecondLabelInSpecialMode)}
+          >
+            {settings.showSecondLabelInSpecialMode ? copy.on : copy.off}
+          </button>
+        </div>
+
+        <div class="setting toggle-row">
+          <span>{copy.showDayPeriod}</span>
+          <button
+            type="button"
+            class:active={settings.showDayPeriodInSpecialMode}
+            aria-pressed={settings.showDayPeriodInSpecialMode}
+            on:click={() => updateSetting("showDayPeriodInSpecialMode", !settings.showDayPeriodInSpecialMode)}
+          >
+            {settings.showDayPeriodInSpecialMode ? copy.on : copy.off}
+          </button>
+        </div>
+      </div>
+
       <label class="setting stacked" for="size">
         <span>{copy.clockSize}</span>
         <select
@@ -721,11 +879,11 @@
         <span>{copy.fullscreen}</span>
         <button
           type="button"
-          class:active={fullscreen}
-          aria-pressed={fullscreen}
+          class:active={activeFullscreen}
+          aria-pressed={activeFullscreen}
           on:click={toggleFullscreen}
         >
-          {fullscreen ? copy.on : copy.off}
+          {activeFullscreen ? copy.on : copy.off}
         </button>
       </div>
     </section>
