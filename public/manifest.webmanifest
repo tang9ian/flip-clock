@@ -1,0 +1,32 @@
+{
+  "name": "Flip Clock",
+  "short_name": "Flip Clock",
+  "description": "A retro flip clock with themes, timezones and screensaver mode / 复古翻页时钟，支持多主题、时区与屏保模式",
+  "lang": "zh-CN",
+  "start_url": ".",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#0a0c10",
+  "background_color": "#0a0c10",
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
