@@ -41,6 +41,31 @@ npm run build
 npm run preview
 ```
 
+### Browser Extension
+
+Build as a browser extension that replaces the new tab page:
+
+```bash
+npm run build:ext
+```
+
+The extension package will be generated in `dist-ext/`.
+
+**Install on Chrome/Edge:**
+
+1. Open `chrome://extensions/` or `edge://extensions/`
+2. Enable "Developer mode"
+3. Click "Load unpacked"
+4. Select the `dist-ext/` folder
+
+**Install on Firefox:**
+
+1. Open `about:debugging#/runtime/this-firefox`
+2. Click "Load Temporary Add-on"
+3. Select any file inside `dist-ext/` (e.g., `manifest.json`)
+
+The extension works on Chrome, Edge, and Firefox using Manifest V3.
+
 ### Main Settings
 
 - Language
@@ -108,6 +133,31 @@ npm run check
 npm run build
 npm run preview
 ```
+
+### 浏览器扩展
+
+构建为浏览器扩展，替换新标签页：
+
+```bash
+npm run build:ext
+```
+
+扩展包将生成在 `dist-ext/` 目录。
+
+**Chrome/Edge 安装：**
+
+1. 打开 `chrome://extensions/` 或 `edge://extensions/`
+2. 启用"开发者模式"
+3. 点击"加载已解压的扩展程序"
+4. 选择 `dist-ext/` 文件夹
+
+**Firefox 安装：**
+
+1. 打开 `about:debugging#/runtime/this-firefox`
+2. 点击"临时载入附加组件"
+3. 选择 `dist-ext/` 内任意文件（如 `manifest.json`）
+
+扩展使用 Manifest V3，支持 Chrome、Edge 和 Firefox。
 
 ### 主要设置项
 
